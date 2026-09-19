@@ -7,6 +7,7 @@ The repository defines roles and decision policies, not a dependency on a partic
 ## Skills
 
 - **team-lead** — owns a development request from planning through delegation, recovery, review, and verified completion.
+- **follow-through (완수)** — carries an authorized multi-step task through verified completion with one active executor, preserving progress across commits, interruptions, quota waits, and sequential provider handoffs.
 - **design** — turns requirements and existing-system context into an implementation-ready design, decomposed into tasks with bounded writable scopes.
 - **worker** — executes a single delegated task inside an assigned scope and returns a verifiable result.
 - **review** — independently reviews completed work for correctness, regressions, requirement compliance, and meaningful risk, and issues a verdict bound to the revision reviewed.
@@ -47,6 +48,17 @@ Review the changes against the original requirement and identify anything that m
 
 For important work where you want deterministic role selection, explicitly ask the agent to act as the team lead, designer, or reviewer.
 
+Use `follow-through` for a plan one executor can finish sequentially, including work that spans several commits or sessions:
+
+```text
+Carry out the approved plan through final verification without asking at every step.
+Use Codex or Claude Code as capacity allows; preserve progress and resume after a usage reset if needed.
+```
+
+Use `team-lead` when execution needs delegation, parallel work, or coordinated integration. A quota wait or several commits alone does not require a team.
+
+`follow-through` includes an optional [local runner](skills/follow-through/references/runtime.md) for Codex and Claude Code, with macOS launchd resumption and a lock for managed writers. Its policy remains usable without that runner. Sequential handoff requires the outgoing executor to stop writing; independently opened interactive agents are outside the runner's lock and must be stopped before handoff. Usage observations guide routing when available; missing information remains unknown. Without a needed capability, preserve progress and report the manual resume point rather than claiming an automatic restart. Installing the skill does not schedule any task.
+
 ## Tooling
 
 A Team Lead may use whatever orchestration and observability capabilities are available in its environment. Examples include an agent orchestrator for spawning workers, a low-cost CLI for quota/usage inspection, and a Discord webhook for progress notifications. These are optional integrations. The core skills must remain useful when none of them are available.
@@ -54,6 +66,12 @@ A Team Lead may use whatever orchestration and observability capabilities are av
 ## Evaluation
 
 `evals/scenarios.md` defines the quality gate: trigger-selection cases plus execution scenarios (write conflicts, silent workers, quota blocks, Lead restart, stale review, failed integration) scored on observable agent behavior rather than on whether the skills read well.
+
+The optional runner has executable regression tests:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
 
 ## License
 

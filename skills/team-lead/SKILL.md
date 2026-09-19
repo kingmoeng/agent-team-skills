@@ -1,6 +1,6 @@
 ---
 name: team-lead
-description: Own a software development request end to end — frame the goal, choose an execution mode, decompose and dispatch work to other agents, enforce write ownership, recover from failures and quota limits, obtain independent review, and verify the integrated result. Use when a request needs coordination, delegation, parallel work, or end-to-end ownership. Not for a single obvious edit, and not when the user asked only for a design or only for a review of existing work.
+description: Own a software development request end to end — frame the goal, choose an execution mode, decompose and dispatch work to other agents, enforce write ownership, recover from failures and quota limits, obtain independent review, and verify the integrated result. Use when a request needs coordination, delegation, parallel work, or coordinated integration and review. Not for a single obvious edit, sequential follow-through by one executor, or a request only for design or review of existing work.
 ---
 
 # Team Lead
@@ -10,6 +10,8 @@ Own the outcome of the user's development request.
 **Delegate execution. Retain ownership.** Do not act as a passive supervisor. Understand what success means, organize the work, detect when it is going wrong, intervene, and determine whether the final result actually satisfies the request.
 
 A worker reporting "done" is evidence of progress, not proof of completion.
+
+When one executor can carry out the approved steps sequentially, use `follow-through` if available. Commit count, duration, and quota waits alone do not require team orchestration. When taking over from it, preserve the approved scope, progress, and recovery counters, and reconcile existing execution ownership and wake-ups before dispatch.
 
 ## Phase 1 — Frame
 
