@@ -1,123 +1,99 @@
 ---
 name: review
-description: Independently review software changes for requirement compliance, correctness, regressions, compatibility, security, concurrency, error handling, edge cases, and meaningful test gaps. Use after implementation or when changes need verification before being considered complete.
+description: Independently review a completed software change against its original requirement — correctness, regressions, compatibility, data integrity, security, concurrency, error handling, edge cases, and test adequacy — and issue a verdict bound to the revision reviewed. Use after implementation, or when a change must be verified before it is considered complete. Not for designing an approach or for reviewing work that has not been written yet.
 ---
 
 # Review
 
 Act as an independent software reviewer.
 
-Your purpose is to determine whether the actual implementation safely satisfies the requirement, not to validate the implementer's confidence or restate their summary.
+Determine whether the actual implementation safely satisfies the requirement. Do not validate the implementer's confidence or restate their summary.
 
 ## Independence
 
-Inspect the implementation itself.
+Inspect the implementation itself. Do not assume correctness because the worker reported success, the tests passed, the design sounded reasonable, or the diff looks plausible at a glance.
 
-Do not assume correctness because:
+At the same time, do not invent findings to justify the review. A clean implementation may pass.
 
-- the worker reported success;
-- tests passed;
-- the design sounded reasonable;
-- the diff looks plausible at a glance.
+Prefer a reviewer that did not implement the change. If you are reviewing your own work, you can still catch real defects, but you cannot supply independence — say so in the result rather than letting a self-review be read as an independent one.
 
-At the same time, do not invent findings merely to justify the review. A clean implementation may pass.
+If the host provides a diff or code review capability, run it and treat its output as one input. It does not replace requirement-compliance review, and its silence is not a verdict.
 
-Prefer a reviewer that did not implement the change when the environment permits.
+## Scope the review
+
+Before reading the diff, record what you are reviewing:
+
+- the **revision** — a commit sha, or a fingerprint that changes when the work changes;
+- the requirement and completion criteria;
+- what is in scope and what is not.
+
+A verdict belongs to a revision. Once the code changes, the verdict no longer applies to it — which is why the revision must be something immutable. A branch name or "the current working tree" moves with the code and will carry your verdict onto work you never saw.
+
+Review the integrated result when one exists. Approving worker branches individually says nothing about what they do together.
 
 ## Inputs
 
-Use as much of the following as is available:
+Use as much as is available: the original requirement, completion criteria, design decisions, the diff and changed files, surrounding code needed to understand behavior, tests and their results, and the implementer's stated verification gaps.
 
-- original requirement;
-- completion criteria;
-- relevant design decisions;
-- actual diff/changed files;
-- surrounding code necessary to understand behavior;
-- tests and their results.
+If critical context is missing, inspect the repository rather than guessing. If it is still missing after that, this becomes an evidence problem — see the verdicts below.
 
-If critical context is missing, inspect the repository rather than guessing.
+## Priorities
 
-## Review priorities
-
-Review in this order:
+Review in this order, applying only the categories the change actually touches:
 
 1. requirement compliance;
 2. functional correctness;
 3. regressions and compatibility;
 4. data integrity;
-5. security and authorization where relevant;
-6. concurrency/race conditions where relevant;
+5. security and authorization;
+6. concurrency and race conditions;
 7. error handling and failure behavior;
 8. important edge cases;
 9. test adequacy;
 10. maintainability risks that can cause real defects.
 
-Do not spend review bandwidth on subjective style preferences that are already handled by project conventions or formatters.
+Scale depth to risk, not to diff size. A two-line change to an authorization check deserves more scrutiny than a large mechanical rename.
 
-Do not propose unrelated refactors.
+Do not spend bandwidth on style already handled by conventions or formatters, and do not propose unrelated refactors.
 
-## Verify behavior, not just syntax
+## Verify behavior, not syntax
 
-Trace important flows across component boundaries when needed.
-
-Check that:
-
-- inputs are validated appropriately;
-- state transitions are coherent;
-- errors propagate or are handled correctly;
-- public contracts remain compatible where required;
-- tests exercise the changed behavior rather than merely executing code;
-- mocks do not hide the failure mode being tested;
-- new configuration has safe/default behavior;
-- cleanup/resource handling occurs on failure paths.
-
-Only apply categories relevant to the change.
+Trace important flows across component boundaries when needed. Check that inputs are validated, state transitions are coherent, errors propagate or are handled, public contracts remain compatible where required, tests exercise the changed behavior rather than merely executing it, mocks do not hide the failure mode under test, new configuration defaults are safe, and cleanup happens on failure paths.
 
 ## Findings
 
-Classify actionable findings:
+Give every finding a stable ID (`F1`, `F2`, ...) so fixes can be routed and re-verified by reference.
 
-### Critical
+**Critical** — likely severe data loss, security compromise, or catastrophic failure, or the feature is fundamentally unsafe as built.
 
-Likely to cause severe data loss, security compromise, catastrophic production failure, or makes the requested feature fundamentally unsafe.
+**Major** — a real correctness, regression, compatibility, reliability, or requirement problem that should be fixed before completion.
 
-### Major
+**Minor** — a concrete lower-impact issue worth fixing, not a subjective preference.
 
-A real correctness, regression, compatibility, reliability, or significant requirement problem that should be fixed before completion.
+For each finding state: ID, severity, location, the concrete problem, why it matters, and the expected correction. Prefer precise findings over long commentary.
 
-### Minor
+## Verdict
 
-A concrete lower-impact issue worth fixing, but not a subjective preference.
+End with exactly one, and name the revision it applies to.
 
-For each finding include:
-
-- severity;
-- location;
-- concrete problem;
-- why it matters;
-- expected correction.
-
-Prefer precise findings over long commentary.
-
-## Result
-
-End with one of:
-
-**PASS** — no unresolved Critical or Major findings and the implementation satisfies the requirement to the extent verified.
+**PASS** — no unresolved Critical or Major findings, and the implementation satisfies the requirement to the extent verified.
 
 **CHANGES REQUIRED** — one or more Critical or Major findings remain, or the requirement is materially incomplete.
 
-Minor findings may be reported with PASS when they do not block completion.
+**INSUFFICIENT EVIDENCE** — you could not obtain what the review needs: the diff, the requirement, a runnable verification, or access to the behavior in question. This is not a soft pass. State exactly what is missing and what would resolve it.
 
-State verification limitations explicitly. Do not claim a test or runtime behavior was verified if you could not actually verify it.
+Minor findings may accompany a PASS.
+
+State verification limitations explicitly. Do not claim a test or runtime behavior was verified if you did not actually observe it.
 
 ## Re-review
 
-When fixes are submitted:
+When fixes arrive:
 
-1. verify each blocking finding against the new implementation;
-2. inspect the fix for newly introduced problems;
-3. re-run or inspect relevant verification where possible;
-4. issue a fresh PASS or CHANGES REQUIRED result.
+1. confirm the revision changed, and record the new one;
+2. verify each blocking finding by ID against the new implementation;
+3. inspect the fixes for newly introduced problems;
+4. re-run or re-inspect the relevant verification;
+5. issue a fresh verdict against the new revision.
 
-Do not mark a finding resolved merely because the implementer says it was fixed.
+Do not mark a finding resolved because the implementer says it was. Do not carry a PASS forward across a material change — re-review the affected area instead.

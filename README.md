@@ -7,8 +7,9 @@ The repository defines roles and decision policies, not a dependency on a partic
 ## Skills
 
 - **team-lead** — owns a development request from planning through delegation, recovery, review, and verified completion.
-- **design** — turns requirements and existing-system context into an implementation-ready design.
-- **review** — independently reviews completed work for correctness, regressions, requirement compliance, and meaningful risk.
+- **design** — turns requirements and existing-system context into an implementation-ready design, decomposed into tasks with bounded writable scopes.
+- **worker** — executes a single delegated task inside an assigned scope and returns a verifiable result.
+- **review** — independently reviews completed work for correctness, regressions, requirement compliance, and meaningful risk, and issues a verdict bound to the revision reviewed.
 
 ## Principles
 
@@ -49,6 +50,10 @@ For important work where you want deterministic role selection, explicitly ask t
 ## Tooling
 
 A Team Lead may use whatever orchestration and observability capabilities are available in its environment. Examples include an agent orchestrator for spawning workers, a low-cost CLI for quota/usage inspection, and a Discord webhook for progress notifications. These are optional integrations. The core skills must remain useful when none of them are available.
+
+## Evaluation
+
+`evals/scenarios.md` defines the quality gate: trigger-selection cases plus execution scenarios (write conflicts, silent workers, quota blocks, Lead restart, stale review, failed integration) scored on observable agent behavior rather than on whether the skills read well.
 
 ## License
 

@@ -1,13 +1,15 @@
 ---
 name: design
-description: Design implementation approaches for software changes by understanding requirements, inspecting the existing system, identifying the change surface and risks, and producing implementation-ready tasks. Use for architecture decisions, multi-component changes, significant technical uncertainty, compatibility-sensitive work, or tasks that benefit from structured design before implementation.
+description: Turn a requirement into an implementation-ready design — understand the goal, inspect the existing system, identify the change surface and risks, choose an approach, and decompose it into dispatchable tasks with bounded writable scopes. Use for architecture decisions, changes to public contracts, hard-to-reverse work, material uncertainty about approach, or multi-component changes whose parts interact. Not for a change whose approach is already obvious, and not for reviewing code that is already written.
 ---
 
 # Design
 
 Produce the smallest sound design that turns a requirement into implementation-ready work.
 
-Do not create architecture for its own sake. Respect the existing system, minimize unnecessary abstraction, and make decisions at the depth warranted by the task.
+Do not create architecture for its own sake. Respect the existing system, minimize unnecessary abstraction, and decide at the depth the task warrants.
+
+You may be invoked directly by a user who wants a design, or as a phase of a larger effort led by another agent. In the second case your output is consumed by a dispatcher, so it must decompose into tasks — see Handoff.
 
 ## Principles
 
@@ -17,123 +19,65 @@ Do not create architecture for its own sake. Respect the existing system, minimi
 - Avoid speculative abstractions for hypothetical future needs.
 - Optimize for correctness, maintainability, testability, and limited blast radius.
 - Make uncertainty explicit instead of silently assuming.
-- Produce a design that workers can execute with less reasoning and ambiguity.
+- Leave workers less to reason about, not more.
 
 ## Process
 
 ### 1. Understand the requirement
 
-Identify:
+Identify the desired outcome, functional behavior, constraints, non-goals, completion criteria, and any ambiguity that materially affects implementation.
 
-- desired user/business outcome;
-- functional behavior;
-- constraints;
-- non-goals;
-- completion criteria;
-- unresolved ambiguities that materially affect implementation.
-
-Do not block on minor ambiguity that can be resolved safely from existing conventions.
+Do not block on minor ambiguity that existing conventions resolve safely.
 
 ### 2. Inspect the existing system
 
-Read enough relevant code, documentation, configuration, tests, and interfaces to understand:
-
-- current behavior;
-- component boundaries;
-- data flow;
-- established patterns;
-- public/internal contracts;
-- existing test strategy.
+Read enough code, configuration, tests, and interfaces to understand current behavior, component boundaries, data flow, established patterns, public and internal contracts, and the existing test strategy.
 
 Prefer extending established patterns over introducing a parallel architecture without a strong reason.
 
 ### 3. Identify the change surface
 
-Determine which areas may change:
+Determine what may change: modules, APIs and schemas, persistence and data model, UI state, configuration, external integrations, tests, and build or runtime behavior.
 
-- modules/packages;
-- APIs and schemas;
-- persistence/data model;
-- frontend/UI state;
-- configuration;
-- external integrations;
-- tests;
-- build/deployment/runtime behavior.
-
-Separate necessary changes from optional cleanup.
+Separate necessary changes from optional cleanup, and say which is which.
 
 ### 4. Analyze risk and compatibility
 
-Consider only relevant risks, including:
-
-- backward compatibility;
-- migrations and stored data;
-- concurrency;
-- authentication/security;
-- error handling and partial failure;
-- performance;
-- external API behavior;
-- rollout/rollback;
-- observability;
-- cross-component regressions.
+Consider only the risks this change actually raises: backward compatibility, migrations and stored data, concurrency, authentication and authorization, error handling and partial failure, performance, external API behavior, rollout and rollback, observability, and cross-component regressions.
 
 ### 5. Choose the design
 
-State the proposed approach and the important decisions behind it.
+State the approach and the decisions behind it.
 
-Compare alternatives only when there is a real tradeoff. Do not pad the design with artificial options when one approach is clearly consistent with the existing system.
-
-Avoid prescribing insignificant implementation details that workers can decide locally.
+Compare alternatives only where a real tradeoff exists. Do not pad the design with artificial options when one approach is clearly consistent with the existing system, and do not prescribe details workers can decide locally.
 
 ### 6. Define verification
 
-Specify how success will be demonstrated:
+Specify how success will be demonstrated: unit, integration, or end-to-end tests; static and build checks; unavoidable manual verification; regression cases; and the failure and edge cases that matter.
 
-- unit/integration/end-to-end tests;
-- static/build checks;
-- manual verification where unavoidable;
-- regression cases;
-- failure/edge cases that matter.
+Verification must map back to the completion criteria.
 
-Verification should map back to the original completion criteria.
+### 7. Decompose into tasks
 
-### 7. Produce implementation tasks
+Break the design into executable tasks. Each task states its objective, writable scope, constraints and decisions it must honor, dependencies, expected result, and verification.
 
-Break the design into executable tasks. Each task should identify:
+**Every task names a writable scope.** A task without one has not finished being decomposed, and cannot be dispatched safely.
 
-- objective;
-- scope;
-- relevant components;
-- important constraints/decisions;
-- dependencies;
-- expected result;
-- verification.
-
-Mark tasks that can safely run in parallel.
+Mark tasks as parallel-safe only when their writable scopes do not intersect and neither needs the other's result. A separate worktree removes a write collision, so say so explicitly when you rely on one — but it does not remove a dependency, and a task that needs another's output is never parallel-safe with it.
 
 ## Design depth
 
-Match design effort to the problem.
+Match effort to risk, not to the number of files touched. One migration can warrant more design than twenty mechanical edits.
 
-### Small
+Go deeper when the change alters a public contract, is hard to reverse, touches stored data, carries real uncertainty about the approach, or spans components whose changes interact. Stay shallow when none of these hold — a few sentences and a task list may be the whole design.
 
-A few sentences or a short task list may be enough.
-
-### Medium
-
-Document the change surface, key decisions, risks, verification, and task breakdown.
-
-### Large/high-risk
-
-Provide explicit component/data-flow decisions, compatibility strategy, failure behavior, rollout considerations when relevant, and dependency-aware task decomposition.
-
-Do not inflate small work into a large design document.
+At depth, be explicit about component and data-flow decisions, compatibility strategy, failure behavior, rollout when relevant, and dependency-aware decomposition. Do not inflate small work into a large document.
 
 ## Handoff
 
-The final design should let implementation workers begin without rediscovering the architecture.
+The design should let workers begin without rediscovering the architecture.
 
-A useful output structure is:
+A useful structure:
 
 1. Goal
 2. Current behavior
@@ -141,7 +85,20 @@ A useful output structure is:
 4. Key decisions
 5. Risks and compatibility
 6. Verification
-7. Implementation tasks
+7. Tasks
 8. Dependencies and parallelization
 
-The design is complete when it reduces implementation uncertainty enough to execute safely, not when every line of code has been predetermined.
+When a dispatcher will consume this, emit the tasks in whatever packet shape it supplied. If it supplied none, emit each task with these fields and leave workspace and base revision for the dispatcher to fill at dispatch time:
+
+```text
+Task: <short-id>
+Objective: <the outcome>
+Context: <what is needed to act>
+Writable scope: <paths this task may modify>
+Constraints: <decisions it must honor>
+Dependencies: <tasks or artifacts it needs>
+Completion criteria: <observable>
+Verification: <commands to run, or what to demonstrate>
+```
+
+The design is complete when it reduces implementation uncertainty enough to execute safely — not when every line of code has been predetermined.
